@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="zh-CN" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
@@ -70,7 +70,8 @@
             document.getElementById('b-title').innerText = book.title;
             document.getElementById('b-author').innerText = book.author || '未知作者';
             document.getElementById('b-desc').innerText = book.description;
-            document.getElementById('b-image').src = book.image || 'https://via.placeholder.com/300x400';
+            // 兼容旧数据：如果没有image字段或为空，使用占位图
+            document.getElementById('b-image').src = book.image || 'https://via.placeholder.com/300x400?text=No+Cover';
 
             // 3. 渲染状态和按钮 (核心逻辑)
             const statusSpan = document.getElementById('b-status-text');
@@ -88,10 +89,11 @@
                 actionArea.innerHTML = `<a href="login.html" class="btn btn-primary">登录后借阅</a>`;
             } else {
                 const isOwner = book.owner._id === currentUser._id;
+                // 注意：当 book.borrower 为 null 时 (例如没人借)，不能读取 _id，需要做安全检查
                 const isBorrower = book.borrower && book.borrower._id === currentUser._id;
 
                 if (isOwner) {
-                    // 我是书主
+                    // --- 我是书主 ---
                     if (book.status === 'returning') {
                         actionArea.innerHTML = `<button onclick="doAction('confirm_return')" class="btn btn-success btn-lg">确认已收到书</button>`;
                         contactDiv.style.display = 'block';
@@ -101,10 +103,14 @@
                         contactDiv.innerText = `当前借阅者: ${book.borrower.username}，联系方式: ${book.borrower.contact}`;
                         actionArea.innerHTML = `<button class="btn btn-secondary" disabled>等待归还</button>`;
                     } else {
-                        actionArea.innerHTML = `<button class="btn btn-secondary" disabled>这是你发布的书</button>`;
+                        // 状态为 available，允许删除
+                        actionArea.innerHTML = `
+                            <button class="btn btn-secondary" disabled>这是你发布的书</button>
+                            <button onclick="deleteBook('${book._id}')" class="btn btn-outline-danger ms-2">下架/删除</button>
+                        `;
                     }
                 } else if (isBorrower) {
-                    // 我是借书人
+                    // --- 我是借书人 ---
                     if (book.status === 'borrowed') {
                         actionArea.innerHTML = `<button onclick="doAction('return_request')" class="btn btn-warning btn-lg">申请还书</button>`;
                         contactDiv.style.display = 'block';
@@ -113,7 +119,7 @@
                         actionArea.innerHTML = `<button class="btn btn-secondary" disabled>等待书主确认...</button>`;
                     }
                 } else {
-                    // 我是路人
+                    // --- 我是路人 ---
                     if (book.status === 'available') {
                         actionArea.innerHTML = `<button onclick="doAction('borrow')" class="btn btn-primary btn-lg">我要借阅</button>`;
                     } else {
@@ -139,6 +145,7 @@
             };
         }
 
+        // 借书/还书操作
         async function doAction(actionType) {
             const res = await fetch(`/api/books/${bookId}/action`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: actionType})
@@ -146,6 +153,28 @@
             const data = await res.json();
             if(data.success) location.reload();
             else alert(data.message || '操作失败');
+        }
+
+        // [新增] 删除书籍操作
+        async function deleteBook(id) {
+            if(!confirm("确定要下架并删除这本书吗？此操作不可撤销！")) return;
+
+            try {
+                const res = await fetch(`/api/books/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert("删除成功");
+                    window.location.href = 'profile.html'; // 返回个人中心
+                } else {
+                    alert(data.message || "删除失败");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("网络请求失败");
+            }
         }
     </script>
 </body>

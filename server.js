@@ -196,4 +196,34 @@ app.post('/api/books/:id/comment', async (req, res) => {
     res.json({ success: true });
 });
 
+// [新增功能] 删除书籍
+app.delete('/api/books/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: '未登录' });
+
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.json({ success: false, message: '书籍不存在' });
+
+        // 1. 验证权限：只有书主能删
+        if (book.owner.toString() !== req.session.userId) {
+            return res.json({ success: false, message: '无权操作' });
+        }
+
+        // 2. 验证状态：只有“可借”状态能删
+        if (book.status !== 'available') {
+            return res.json({ success: false, message: '书籍当前被借出或归还中，无法删除！' });
+        }
+
+        // 3. 执行删除
+        await Book.findByIdAndDelete(req.params.id);
+        
+        // (进阶完善：如果你想把上传的图片文件也从硬盘删掉，需要引入 fs 模块，这里暂不展示以保持简单)
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
 app.listen(3000, () => console.log('服务已启动: http://localhost:3000'));
