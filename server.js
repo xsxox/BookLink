@@ -2,10 +2,27 @@
 const mongoose = require('mongoose');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
+const path = require('path');     // 新增: 处理文件路径
+const multer = require('multer'); // 新增: 处理上传图片
 const app = express();
 
-// --- 1. 连接数据库 ---
-// 请确保本地 MongoDB 已启动
+// --- 0. Multer 上传配置 (新增部分) ---
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // 图片保存到 public/uploads 文件夹
+        cb(null, 'public/uploads/') 
+    },
+    filename: function (req, file, cb) {
+        // 给图片起个唯一的名字 (时间戳 + 随机数 + 原始后缀)
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage: storage });
+
+
+// --- 1. 连接MongoDB数据库 ---
+// 注意：你之前提供的连接字符串已包含密码，请妥善保管。
 mongoose.connect('mongodb+srv://1946261830_db_user:zxcvbnmasdfghjkl@cluster0.h82wjgm.mongodb.net/?appName=Cluster0')
     .then(() => console.log('MongoDB 连接成功'))
     .catch(err => console.error('MongoDB 连接失败', err));
@@ -31,7 +48,7 @@ const Book = mongoose.model('Book', new mongoose.Schema({
 }));
 
 // --- 3. 中间件配置 ---
-app.use(express.static('public')); // 托管静态文件 (HTML/JS/CSS)
+app.use(express.static('public')); // 托管静态文件 (HTML/JS/CSS/Uploads)
 app.use(express.json()); // 解析 JSON 请求体
 app.use(session({
     secret: 'my_secret_key_123',
@@ -103,10 +120,26 @@ app.get('/api/books/:id', async (req, res) => {
     }
 });
 
-// [书籍] 发布新书
-app.post('/api/books', async (req, res) => {
+// --- [重点修改] 发布新书 (支持文件上传) ---
+// upload.single('coverImage') 会自动处理名为 coverImage 的文件
+app.post('/api/books', upload.single('coverImage'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: '未登录' });
-    const book = new Book({ ...req.body, owner: req.session.userId });
+    
+    // 如果用户上传了图，req.file 就会有内容
+    let imageUrl = ''; // 默认为空或使用前端占位图
+    if (req.file) {
+        // 生成访问路径： /uploads/文件名
+        imageUrl = '/uploads/' + req.file.filename;
+    }
+
+    const book = new Book({
+        title: req.body.title,
+        author: req.body.author,
+        description: req.body.description,
+        image: imageUrl, // 存入数据库的是相对路径
+        owner: req.session.userId
+    });
+    
     await book.save();
     res.json({ success: true, id: book._id });
 });

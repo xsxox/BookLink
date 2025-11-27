@@ -11,29 +11,62 @@
         <h2>发布新书</h2>
         <div class="row">
             <div class="col-md-6">
-                <form id="new-book-form">
-                    <div class="mb-3"><label>书名</label><input type="text" name="title" class="form-control" required></div>
-                    <div class="mb-3"><label>作者</label><input type="text" name="author" class="form-control"></div>
-                    <div class="mb-3"><label>封面图片链接 (选填)</label><input type="text" name="image" class="form-control" placeholder="http://..."></div>
-                    <div class="mb-3"><label>描述/推荐语</label><textarea name="description" class="form-control" rows="4"></textarea></div>
+                <!-- 注意：这里的 id 改为了 upload-form -->
+                <form id="upload-form">
+                    <div class="mb-3">
+                        <label>书名</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>作者</label>
+                        <input type="text" name="author" class="form-control">
+                    </div>
+                    
+                    <!-- 这里的 input 类型必须是 file，name 必须是 coverImage -->
+                    <div class="mb-3">
+                        <label>封面图片 (支持 jpg/png)</label>
+                        <input type="file" name="coverImage" class="form-control" accept="image/*">
+                        <div class="form-text">如果不上传，将使用默认封面。</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>描述/推荐语</label>
+                        <textarea name="description" class="form-control" rows="4"></textarea>
+                    </div>
                     <button type="submit" class="btn btn-primary">立即发布</button>
                 </form>
             </div>
         </div>
     </div>
+    
     <script src="js/app.js"></script>
     <script>
-        document.getElementById('new-book-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = Object.fromEntries(new FormData(e.target));
-            const res = await fetch('/api/books', {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(formData)
-            });
-            const data = await res.json();
-            if(data.success) window.location.href = 'index.html';
-            else alert('发布失败，请检查登录状态');
+        document.getElementById('upload-form').onsubmit = async (e) => {
+            e.preventDefault(); // 阻止表单默认刷新提交
+
+            // 1. 构建 FormData 对象 (专门用于文件上传)
+            const formElement = e.target;
+            const formData = new FormData(formElement);
+
+            // 2. 发送请求
+            try {
+                const res = await fetch('/api/books', {
+                    method: 'POST',
+                    body: formData // 浏览器会自动设置 Content-Type 为 multipart/form-data
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    window.location.href = 'index.html';
+                } else {
+                    alert(data.error || '发布失败，请检查登录状态');
+                }
+            } catch (err) {
+                console.error(err);
+                alert("网络错误，上传失败");
+            }
         }
-        initNavbar(); // 单独引入因为app.js在body底部
+        initNavbar();
     </script>
 </body>
 </html>
