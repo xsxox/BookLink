@@ -2,37 +2,35 @@
 const mongoose = require('mongoose');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
-const path = require('path');     // 新增: 处理文件路径
-const multer = require('multer'); // 新增: 处理上传图片
+const path = require('path');
+const multer = require('multer');
 const app = express();
 
-// --- 0. Multer 上传配置 (新增部分) ---
+// --- 0. Multer 上传配置 ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // 图片保存到 public/uploads 文件夹
         cb(null, 'public/uploads/') 
     },
     filename: function (req, file, cb) {
-        // 给图片起个唯一的名字 (时间戳 + 随机数 + 原始后缀)
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
 const upload = multer({ storage: storage });
 
-
-// --- 1. 连接MongoDB数据库 ---
-// 注意：你之前提供的连接字符串已包含密码，请妥善保管。
+// --- 1. 连接数据库 ---
 mongoose.connect('mongodb+srv://1946261830_db_user:zxcvbnmasdfghjkl@cluster0.h82wjgm.mongodb.net/?appName=Cluster0')
     .then(() => console.log('MongoDB 连接成功'))
     .catch(err => console.error('MongoDB 连接失败', err));
 
 // --- 2. 定义模型 ---
+// [修改点] User 模型增加了 avatar 字段
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     contact: String,
     bio: String,
+    avatar: String, // 新增：头像路径
     borrowedBooks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }]
 }));
 
@@ -47,17 +45,17 @@ const Book = mongoose.model('Book', new mongoose.Schema({
     comments: [{ user: String, text: String, date: { type: Date, default: Date.now } }]
 }));
 
-// --- 3. 中间件配置 ---
-app.use(express.static('public')); // 托管静态文件 (HTML/JS/CSS/Uploads)
-app.use(express.json()); // 解析 JSON 请求体
+// --- 3. 中间件 ---
+app.use(express.static('public'));
+app.use(express.json());
 app.use(session({
     secret: 'my_secret_key_123',
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 24 } // 1天
+    cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// --- 4. API 路由 (只返回 JSON) ---
+// --- 4. API 路由 ---
 
 // [用户] 获取当前用户信息
 app.get('/api/me', async (req, res) => {
@@ -68,6 +66,39 @@ app.get('/api/me', async (req, res) => {
     res.json({ loggedIn: true, user, myBooks });
 });
 
+// [新增功能] 更新个人资料 (支持头像上传)
+app.post('/api/me/update', upload.single('avatar'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: '未登录' });
+
+    try {
+        const { username, contact, bio } = req.body;
+        const user = await User.findById(req.session.userId);
+
+        // 1. 如果修改了用户名，需检查是否重复
+        if (username !== user.username) {
+            const exists = await User.findOne({ username });
+            if (exists) return res.json({ success: false, message: '用户名已存在' });
+            user.username = username;
+        }
+
+        // 2. 更新其他文字字段
+        user.contact = contact;
+        user.bio = bio;
+
+        // 3. 如果上传了新头像，更新路径
+        if (req.file) {
+            user.avatar = '/uploads/' + req.file.filename;
+        }
+
+        await user.save();
+        res.json({ success: true });
+
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
 // [用户] 注册
 app.post('/api/register', async (req, res) => {
     const { username, password, contact, bio } = req.body;
@@ -75,7 +106,7 @@ app.post('/api/register', async (req, res) => {
         const hash = await bcrypt.hash(password, 10);
         const user = new User({ username, password: hash, contact, bio });
         await user.save();
-        req.session.userId = user._id; // 注册后自动登录
+        req.session.userId = user._id;
         res.json({ success: true });
     } catch (e) {
         res.json({ success: false, message: '用户名已存在' });
@@ -100,7 +131,7 @@ app.get('/api/logout', (req, res) => {
     res.json({ success: true });
 });
 
-// [书籍] 获取列表 (支持搜索)
+// [书籍] 获取列表
 app.get('/api/books', async (req, res) => {
     const { search } = req.query;
     const query = search ? { title: { $regex: search, $options: 'i' } } : {};
@@ -108,7 +139,7 @@ app.get('/api/books', async (req, res) => {
     res.json(books);
 });
 
-// [书籍] 获取单本详情
+// [书籍] 详情
 app.get('/api/books/:id', async (req, res) => {
     try {
         const book = await Book.findById(req.params.id)
@@ -120,31 +151,40 @@ app.get('/api/books/:id', async (req, res) => {
     }
 });
 
-// --- [重点修改] 发布新书 (支持文件上传) ---
-// upload.single('coverImage') 会自动处理名为 coverImage 的文件
+// [书籍] 发布 (支持封面)
 app.post('/api/books', upload.single('coverImage'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: '未登录' });
-    
-    // 如果用户上传了图，req.file 就会有内容
-    let imageUrl = ''; // 默认为空或使用前端占位图
-    if (req.file) {
-        // 生成访问路径： /uploads/文件名
-        imageUrl = '/uploads/' + req.file.filename;
-    }
+    let imageUrl = '';
+    if (req.file) imageUrl = '/uploads/' + req.file.filename;
 
     const book = new Book({
         title: req.body.title,
         author: req.body.author,
         description: req.body.description,
-        image: imageUrl, // 存入数据库的是相对路径
+        image: imageUrl,
         owner: req.session.userId
     });
-    
     await book.save();
     res.json({ success: true, id: book._id });
 });
 
-// [核心] 借书/还书流程控制
+// [书籍] 删除
+app.delete('/api/books/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: '未登录' });
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.json({ success: false, message: '书籍不存在' });
+        if (book.owner.toString() !== req.session.userId) return res.json({ success: false, message: '无权操作' });
+        if (book.status !== 'available') return res.json({ success: false, message: '书籍当前无法删除' });
+        
+        await Book.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, message: '错误' });
+    }
+});
+
+// [核心] 借还流程
 app.post('/api/books/:id/action', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: '未登录' });
     const { action } = req.body;
@@ -153,26 +193,20 @@ app.post('/api/books/:id/action', async (req, res) => {
 
     if (!book) return res.json({ success: false, message: '书籍不存在' });
 
-    // 1. 借书
     if (action === 'borrow') {
         if (book.status !== 'available') return res.json({ success: false, message: '已被借走' });
         if (user.borrowedBooks.length >= 3) return res.json({ success: false, message: '最多借3本书' });
-        
         book.status = 'borrowed';
         book.borrower = user._id;
         user.borrowedBooks.push(book._id);
         await user.save();
     }
-    // 2. 借书者申请还书
     else if (action === 'return_request') {
         if (String(book.borrower) !== String(user._id)) return res.json({ success: false });
         book.status = 'returning';
     }
-    // 3. 书主确认归还
     else if (action === 'confirm_return') {
         if (String(book.owner) !== String(user._id)) return res.json({ success: false });
-        
-        // 从借阅者列表中移除
         const borrower = await User.findById(book.borrower);
         if (borrower) {
             borrower.borrowedBooks.pull(book._id);
@@ -181,7 +215,6 @@ app.post('/api/books/:id/action', async (req, res) => {
         book.status = 'available';
         book.borrower = null;
     }
-
     await book.save();
     res.json({ success: true });
 });
@@ -194,36 +227,6 @@ app.post('/api/books/:id/comment', async (req, res) => {
     book.comments.push({ user: user.username, text: req.body.text });
     await book.save();
     res.json({ success: true });
-});
-
-// [新增功能] 删除书籍
-app.delete('/api/books/:id', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: '未登录' });
-
-    try {
-        const book = await Book.findById(req.params.id);
-        if (!book) return res.json({ success: false, message: '书籍不存在' });
-
-        // 1. 验证权限：只有书主能删
-        if (book.owner.toString() !== req.session.userId) {
-            return res.json({ success: false, message: '无权操作' });
-        }
-
-        // 2. 验证状态：只有“可借”状态能删
-        if (book.status !== 'available') {
-            return res.json({ success: false, message: '书籍当前被借出或归还中，无法删除！' });
-        }
-
-        // 3. 执行删除
-        await Book.findByIdAndDelete(req.params.id);
-        
-        // (进阶完善：如果你想把上传的图片文件也从硬盘删掉，需要引入 fs 模块，这里暂不展示以保持简单)
-
-        res.json({ success: true });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ success: false, message: '服务器错误' });
-    }
 });
 
 app.listen(3000, () => console.log('服务已启动: http://localhost:3000'));

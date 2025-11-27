@@ -13,25 +13,86 @@
         <div class="row">
             <!-- 个人信息卡片 -->
             <div class="col-md-4 mb-4">
-                <div class="card text-center p-3">
-                    <div class="mb-3">
-                        <img id="u-avatar" src="" class="rounded-circle" style="width:100px;">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-3 position-relative d-inline-block">
+                            <!-- 头像显示区域 -->
+                            <img id="u-avatar" src="" class="rounded-circle border border-3" style="width:120px; height:120px; object-fit: cover;">
+                        </div>
+                        
+                        <h3 id="u-name" class="fw-bold mt-2"></h3>
+                        <p id="u-bio" class="text-muted small px-3"></p>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <!-- 编辑资料按钮 (触发模态框) -->
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                                ✏️ 编辑资料 / 上传头像
+                            </button>
+                        </div>
+
+                        <ul class="list-group list-group-flush text-start">
+                            <li class="list-group-item"><strong>联系方式:</strong> <span id="u-contact"></span></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                可借额度
+                                <span class="badge bg-primary rounded-pill"><span id="u-quota"></span> / 3</span>
+                            </li>
+                        </ul>
                     </div>
-                    <h3 id="u-name"></h3>
-                    <p id="u-bio" class="text-muted"></p>
-                    <p class="mb-1"><strong>联系方式:</strong> <span id="u-contact"></span></p>
-                    <div class="alert alert-info mt-2 mb-0">可借配额: <span id="u-quota"></span> / 3</div>
                 </div>
             </div>
 
             <div class="col-md-8">
                 <!-- 借阅列表 -->
-                <h4 class="mb-3">📖 我正在读</h4>
-                <div class="list-group mb-5" id="borrow-list"></div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-body-tertiary">
+                        <h5 class="mb-0">📖 我正在读</h5>
+                    </div>
+                    <div class="list-group list-group-flush" id="borrow-list"></div>
+                </div>
 
                 <!-- 发布列表 -->
-                <h4 class="mb-3">📦 我发布的书籍</h4>
-                <div class="list-group" id="my-books-list"></div>
+                <div class="card shadow-sm">
+                    <div class="card-header bg-body-tertiary">
+                        <h5 class="mb-0">📦 我发布的书籍</h5>
+                    </div>
+                    <div class="list-group list-group-flush" id="my-books-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑资料 模态框 (Modal) -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑个人资料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-profile-form">
+                        <div class="mb-3 text-center">
+                            <label class="form-label d-block">更换头像</label>
+                            <input type="file" name="avatar" class="form-control form-control-sm" accept="image/*">
+                        </div>
+                        <div class="mb-3">
+                            <label>用户名</label>
+                            <input type="text" name="username" id="edit-username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>联系方式</label>
+                            <input type="text" name="contact" id="edit-contact" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>个人简介</label>
+                            <textarea name="bio" id="edit-bio" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">保存修改</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -52,53 +113,90 @@
 
             document.getElementById('profile-content').style.display = 'block';
             
-            // 填充用户信息
             const u = data.user;
+            
+            // 1. 填充展示数据
             document.getElementById('u-name').innerText = u.username;
             document.getElementById('u-bio').innerText = u.bio || '暂无简介';
             document.getElementById('u-contact').innerText = u.contact;
-            document.getElementById('u-avatar').src = `https://ui-avatars.com/api/?name=${u.username}&background=random`;
             document.getElementById('u-quota').innerText = 3 - u.borrowedBooks.length;
+            
+            // 头像逻辑：如果有上传的图片就用上传的，否则用 API 生成默认头像
+            const avatarUrl = u.avatar ? u.avatar : `https://ui-avatars.com/api/?name=${u.username}&background=random&size=256`;
+            document.getElementById('u-avatar').src = avatarUrl;
 
-            // 填充在读列表
+            // 2. 预填充编辑表单 (这样用户打开弹窗时，原来的信息还在)
+            document.getElementById('edit-username').value = u.username;
+            document.getElementById('edit-contact').value = u.contact;
+            document.getElementById('edit-bio').value = u.bio || '';
+
+            // 3. 渲染借阅列表
             const bList = document.getElementById('borrow-list');
-            if(u.borrowedBooks.length === 0) bList.innerHTML = '<div class="list-group-item text-muted">暂无借阅</div>';
+            if(u.borrowedBooks.length === 0) bList.innerHTML = '<div class="list-group-item text-muted text-center py-3">暂无借阅</div>';
             else {
+                bList.innerHTML = ''; // 清空
                 u.borrowedBooks.forEach(b => {
                     bList.innerHTML += `
                         <a href="book.html?id=${b._id}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">${b.title}</h5>
-                                <small class="${b.status === 'returning' ? 'text-warning' : 'text-primary'}">
-                                    ${b.status === 'returning' ? '归还确认中...' : '阅读中'}
-                                </small>
+                                <h6 class="mb-1">${b.title}</h6>
+                                <span class="badge ${b.status === 'returning' ? 'text-bg-warning' : 'text-bg-primary'}">
+                                    ${b.status === 'returning' ? '归还确认中' : '阅读中'}
+                                </span>
                             </div>
-                            <small class="text-muted">书主: ${b.owner.username} (${b.owner.contact})</small>
+                            <small class="text-muted">书主: ${b.owner.username}</small>
                         </a>
                     `;
                 });
             }
 
-            // 填充我发布的书
+            // 4. 渲染发布列表
             const mList = document.getElementById('my-books-list');
-            if(data.myBooks.length === 0) mList.innerHTML = '<div class="list-group-item text-muted">暂无发布</div>';
+            if(data.myBooks.length === 0) mList.innerHTML = '<div class="list-group-item text-muted text-center py-3">暂无发布</div>';
             else {
+                mList.innerHTML = ''; // 清空
                 data.myBooks.forEach(b => {
-                    let statusHtml = '<span class="text-success">在架</span>';
-                    if(b.status === 'borrowed') statusHtml = `<span class="text-danger">被借走 (借阅人: ${b.borrower.username})</span>`;
-                    if(b.status === 'returning') statusHtml = `<span class="text-warning fw-bold">等待你确认归还</span>`;
+                    let statusHtml = '<span class="text-success small">● 在架</span>';
+                    if(b.status === 'borrowed') statusHtml = `<span class="text-danger small">● 被借走 (${b.borrower.username})</span>`;
+                    if(b.status === 'returning') statusHtml = `<span class="text-warning small fw-bold">● 待确认归还</span>`;
                     
                     mList.innerHTML += `
                         <a href="book.html?id=${b._id}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">${b.title}</h5>
-                                <small>${statusHtml}</small>
+                                <h6 class="mb-1">${b.title}</h6>
+                                ${statusHtml}
                             </div>
                         </a>
                     `;
                 });
             }
         }
+
+        // --- 处理编辑表单提交 ---
+        document.getElementById('edit-profile-form').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            // 使用 FormData 支持文件上传
+            const formData = new FormData(e.target);
+
+            try {
+                const res = await fetch('/api/me/update', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('修改成功！');
+                    location.reload(); // 刷新页面显示最新信息
+                } else {
+                    alert(data.message || '修改失败');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('网络错误');
+            }
+        };
     </script>
 </body>
 </html>
