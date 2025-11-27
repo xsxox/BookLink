@@ -24,7 +24,6 @@
                         <p id="u-bio" class="text-muted small px-3"></p>
                         
                         <div class="d-grid gap-2 mb-3">
-                            <!-- 编辑资料按钮 (触发模态框) -->
                             <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
                                 ✏️ 编辑资料 / 上传头像
                             </button>
@@ -51,17 +50,25 @@
                 </div>
 
                 <!-- 发布列表 -->
-                <div class="card shadow-sm">
+                <div class="card shadow-sm mb-4">
                     <div class="card-header bg-body-tertiary">
                         <h5 class="mb-0">📦 我发布的书籍</h5>
                     </div>
                     <div class="list-group list-group-flush" id="my-books-list"></div>
                 </div>
+
+                <!-- [修改] 愿望单列表 -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-body-tertiary">
+                        <h5 class="mb-0">❤️ 我的愿望单</h5>
+                    </div>
+                    <div class="list-group list-group-flush" id="wishlist-list"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 编辑资料 模态框 (Modal) -->
+    <!-- 编辑资料 模态框 -->
     <div class="modal fade" id="editProfileModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -115,26 +122,24 @@
             
             const u = data.user;
             
-            // 1. 填充展示数据
+            // 填充信息
             document.getElementById('u-name').innerText = u.username;
             document.getElementById('u-bio').innerText = u.bio || '暂无简介';
             document.getElementById('u-contact').innerText = u.contact;
             document.getElementById('u-quota').innerText = 3 - u.borrowedBooks.length;
-            
-            // 头像逻辑：如果有上传的图片就用上传的，否则用 API 生成默认头像
             const avatarUrl = u.avatar ? u.avatar : `https://ui-avatars.com/api/?name=${u.username}&background=random&size=256`;
             document.getElementById('u-avatar').src = avatarUrl;
 
-            // 2. 预填充编辑表单 (这样用户打开弹窗时，原来的信息还在)
+            // 预填充编辑表单
             document.getElementById('edit-username').value = u.username;
             document.getElementById('edit-contact').value = u.contact;
             document.getElementById('edit-bio').value = u.bio || '';
 
-            // 3. 渲染借阅列表
+            // 渲染正在读
             const bList = document.getElementById('borrow-list');
             if(u.borrowedBooks.length === 0) bList.innerHTML = '<div class="list-group-item text-muted text-center py-3">暂无借阅</div>';
             else {
-                bList.innerHTML = ''; // 清空
+                bList.innerHTML = '';
                 u.borrowedBooks.forEach(b => {
                     bList.innerHTML += `
                         <a href="book.html?id=${b._id}" class="list-group-item list-group-item-action">
@@ -150,14 +155,14 @@
                 });
             }
 
-            // 4. 渲染发布列表
+            // 渲染发布列表
             const mList = document.getElementById('my-books-list');
             if(data.myBooks.length === 0) mList.innerHTML = '<div class="list-group-item text-muted text-center py-3">暂无发布</div>';
             else {
-                mList.innerHTML = ''; // 清空
+                mList.innerHTML = '';
                 data.myBooks.forEach(b => {
                     let statusHtml = '<span class="text-success small">● 在架</span>';
-                    if(b.status === 'borrowed') statusHtml = `<span class="text-danger small">● 被借走 (${b.borrower.username})</span>`;
+                    if(b.status === 'borrowed') statusHtml = `<span class="text-danger small">● 被借走</span>`;
                     if(b.status === 'returning') statusHtml = `<span class="text-warning small fw-bold">● 待确认归还</span>`;
                     
                     mList.innerHTML += `
@@ -170,31 +175,49 @@
                     `;
                 });
             }
+
+            // [修改] 渲染愿望单列表
+            const wList = document.getElementById('wishlist-list');
+            if (!u.wishlist || u.wishlist.length === 0) {
+                wList.innerHTML = '<div class="list-group-item text-muted text-center py-3">暂无收藏</div>';
+            } else {
+                wList.innerHTML = '';
+                u.wishlist.forEach(b => {
+                    if(!b) return; // 防止书籍已被删除
+                    
+                    wList.innerHTML += `
+                        <a href="book.html?id=${b._id}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <img src="${b.image || 'https://via.placeholder.com/50'}" style="width:40px; height:50px; object-fit:cover; margin-right:10px;" class="rounded border">
+                                <div>
+                                    <h6 class="mb-0 text-truncate" style="max-width: 150px;">${b.title}</h6>
+                                    <small class="text-muted">作者: ${b.author || '未知'}</small>
+                                </div>
+                            </div>
+                            <span class="badge ${b.status === 'available' ? 'text-bg-success' : 'text-bg-secondary'}">
+                                ${b.status === 'available' ? '可借' : '忙碌'}
+                            </span>
+                        </a>
+                    `;
+                });
+            }
         }
 
-        // --- 处理编辑表单提交 ---
+        // 处理编辑
         document.getElementById('edit-profile-form').onsubmit = async (e) => {
             e.preventDefault();
-            
-            // 使用 FormData 支持文件上传
             const formData = new FormData(e.target);
-
             try {
-                const res = await fetch('/api/me/update', {
-                    method: 'POST',
-                    body: formData
-                });
+                const res = await fetch('/api/me/update', { method: 'POST', body: formData });
                 const data = await res.json();
-
                 if (data.success) {
                     alert('修改成功！');
-                    location.reload(); // 刷新页面显示最新信息
+                    location.reload();
                 } else {
                     alert(data.message || '修改失败');
                 }
             } catch (err) {
                 console.error(err);
-                alert('网络错误');
             }
         };
     </script>

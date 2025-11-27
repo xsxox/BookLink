@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <div id="navbar-placeholder"></div> <!-- 导航栏挂载点 -->
+    <div id="navbar-placeholder"></div>
 
     <div class="container">
         <div class="row mb-4">
@@ -20,7 +20,6 @@
         </div>
 
         <div class="row" id="books-container">
-            <!-- 书籍列表 JS 填充 -->
             <div class="text-center py-5"><div class="spinner-border"></div></div>
         </div>
     </div>
@@ -28,7 +27,27 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/app.js"></script>
     <script>
-        loadBooks();
+        // 全局变量
+        let userWishlistIds = [];
+        let isLoggedIn = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initNavbar();
+            
+            // 1. 先获取当前用户的收藏列表
+            try {
+                const res = await fetch('/api/me');
+                const data = await res.json();
+                if (data.loggedIn) {
+                    isLoggedIn = true;
+                    // 确保获取的是 ID 字符串列表
+                    userWishlistIds = data.user.wishlist.map(book => book._id);
+                }
+            } catch(e) { console.error(e); }
+
+            // 2. 再加载书籍列表
+            loadBooks();
+        });
 
         async function loadBooks() {
             const query = document.getElementById('search-input').value;
@@ -43,16 +62,35 @@
                 return;
             }
 
+            // SVG 图标定义
+            const heartOutlineSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/></svg>`;
+            const heartFilledSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>`;
+
             books.forEach(book => {
                 let badgeClass = 'bg-success';
                 let statusText = '可借';
                 if(book.status === 'borrowed') { badgeClass = 'bg-secondary'; statusText = '已借出'; }
                 if(book.status === 'returning') { badgeClass = 'bg-warning'; statusText = '归还中'; }
 
+                const isLiked = userWishlistIds.includes(book._id);
+                const currentIcon = isLiked ? heartFilledSvg : heartOutlineSvg;
+                const btnColorClass = isLiked ? 'text-danger' : 'text-secondary';
+
                 container.innerHTML += `
                     <div class="col-md-3 mb-4">
-                        <div class="card h-100 shadow-sm">
-                            <img src="${book.image || 'https://via.placeholder.com/200x300?text=BookLink'}" class="card-img-top" style="height:250px;object-fit:cover">
+                        <div class="card h-100 shadow-sm border-0">
+                            <!-- 图片容器 + 收藏按钮 -->
+                            <div class="position-relative">
+                                <img src="${book.image || 'https://via.placeholder.com/200x300?text=BookLink'}" class="card-img-top" style="height:250px; object-fit:cover;">
+                                
+                                <button onclick="toggleWishlist('${book._id}', this)" 
+                                        class="btn btn-light rounded-circle shadow-sm position-absolute bottom-0 end-0 m-2 ${btnColorClass}" 
+                                        style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; border:none; z-index: 20;"
+                                        title="收藏">
+                                    ${currentIcon}
+                                </button>
+                            </div>
+
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title text-truncate">${book.title}</h5>
                                 <p class="small text-muted mb-2">提供者: ${book.owner.username}</p>
@@ -65,6 +103,41 @@
                     </div>
                 `;
             });
+        }
+
+        async function toggleWishlist(bookId, btn) {
+            event.preventDefault(); 
+            event.stopPropagation();
+
+            if (!isLoggedIn) {
+                if(confirm("请先登录后收藏，去登录吗？")) {
+                    window.location.href = 'login.html';
+                }
+                return;
+            }
+
+            const heartOutlineSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/></svg>`;
+            const heartFilledSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>`;
+
+            const res = await fetch(`/api/books/${bookId}/wishlist`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.success) {
+                if (data.isWishlisted) {
+                    btn.innerHTML = heartFilledSvg;
+                    btn.classList.remove('text-secondary');
+                    btn.classList.add('text-danger');
+                    if(!userWishlistIds.includes(bookId)) userWishlistIds.push(bookId);
+                } else {
+                    btn.innerHTML = heartOutlineSvg;
+                    btn.classList.remove('text-danger');
+                    btn.classList.add('text-secondary');
+                    const idx = userWishlistIds.indexOf(bookId);
+                    if(idx > -1) userWishlistIds.splice(idx, 1);
+                }
+            } else {
+                alert("操作失败");
+            }
         }
     </script>
 </body>

@@ -24,14 +24,14 @@ mongoose.connect('mongodb+srv://1946261830_db_user:zxcvbnmasdfghjkl@cluster0.h82
     .catch(err => console.error('MongoDB 连接失败', err));
 
 // --- 2. 定义模型 ---
-// [修改点] User 模型增加了 avatar 字段
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     contact: String,
     bio: String,
-    avatar: String, // 新增：头像路径
-    borrowedBooks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }]
+    avatar: String,
+    borrowedBooks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }],
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }] // 收藏列表
 }));
 
 const Book = mongoose.model('Book', new mongoose.Schema({
@@ -60,41 +60,64 @@ app.use(session({
 // [用户] 获取当前用户信息
 app.get('/api/me', async (req, res) => {
     if (!req.session.userId) return res.json({ loggedIn: false });
+    
+    // populate wishlist 才能在前端获取收藏详情
     const user = await User.findById(req.session.userId)
-        .populate({ path: 'borrowedBooks', populate: { path: 'owner', select: 'username contact' } });
+        .populate({ path: 'borrowedBooks', populate: { path: 'owner', select: 'username contact' } })
+        .populate('wishlist'); 
+
     const myBooks = await Book.find({ owner: req.session.userId }).populate('borrower', 'username contact');
     res.json({ loggedIn: true, user, myBooks });
 });
 
-// [新增功能] 更新个人资料 (支持头像上传)
+// [收藏] 切换收藏状态 (修复版：解决ID匹配问题)
+app.post('/api/books/:id/wishlist', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: '未登录' });
+    
+    try {
+        const user = await User.findById(req.session.userId);
+        const bookId = req.params.id;
+
+        // 核心修复：使用 findIndex 并将 ObjectId 转为字符串比较
+        const index = user.wishlist.findIndex(id => id.toString() === bookId);
+        
+        let isWishlisted = false;
+
+        if (index === -1) {
+            // 没找到 -> 添加
+            user.wishlist.push(bookId);
+            isWishlisted = true;
+        } else {
+            // 找到了 -> 移除
+            user.wishlist.splice(index, 1);
+            isWishlisted = false;
+        }
+
+        await user.save();
+        res.json({ success: true, isWishlisted });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: '操作失败' });
+    }
+});
+
+// [用户] 更新资料
 app.post('/api/me/update', upload.single('avatar'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: '未登录' });
-
     try {
         const { username, contact, bio } = req.body;
         const user = await User.findById(req.session.userId);
-
-        // 1. 如果修改了用户名，需检查是否重复
         if (username !== user.username) {
             const exists = await User.findOne({ username });
             if (exists) return res.json({ success: false, message: '用户名已存在' });
             user.username = username;
         }
-
-        // 2. 更新其他文字字段
         user.contact = contact;
         user.bio = bio;
-
-        // 3. 如果上传了新头像，更新路径
-        if (req.file) {
-            user.avatar = '/uploads/' + req.file.filename;
-        }
-
+        if (req.file) user.avatar = '/uploads/' + req.file.filename;
         await user.save();
         res.json({ success: true });
-
     } catch (e) {
-        console.error(e);
         res.status(500).json({ success: false, message: '服务器错误' });
     }
 });
@@ -151,12 +174,11 @@ app.get('/api/books/:id', async (req, res) => {
     }
 });
 
-// [书籍] 发布 (支持封面)
+// [书籍] 发布
 app.post('/api/books', upload.single('coverImage'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: '未登录' });
     let imageUrl = '';
     if (req.file) imageUrl = '/uploads/' + req.file.filename;
-
     const book = new Book({
         title: req.body.title,
         author: req.body.author,
@@ -176,7 +198,6 @@ app.delete('/api/books/:id', async (req, res) => {
         if (!book) return res.json({ success: false, message: '书籍不存在' });
         if (book.owner.toString() !== req.session.userId) return res.json({ success: false, message: '无权操作' });
         if (book.status !== 'available') return res.json({ success: false, message: '书籍当前无法删除' });
-        
         await Book.findByIdAndDelete(req.params.id);
         res.json({ success: true });
     } catch (e) {
