@@ -11,7 +11,6 @@
     <div class="container mt-4">
         <div class="row" id="book-content" style="display:none">
             <div class="col-md-4">
-                <!-- 图片展示 -->
                 <img id="b-image" class="img-fluid rounded shadow mb-3" src="">
             </div>
             <div class="col-md-8">
@@ -25,11 +24,16 @@
                     <div class="card-body">
                         <h5 class="card-title">当前状态: <span id="b-status-text"></span></h5>
                         
-                        <!-- 这里的联系方式框，只有在借阅中才会显示在页面上 -->
-                        <div id="contact-info" class="alert alert-info mt-3" style="display:none"></div>
+                        <!-- [修改] 借阅中显示的联系方式框 (增加了复制按钮) -->
+                        <div id="contact-info" class="alert alert-info mt-3" style="display:none">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span id="contact-text-content"></span>
+                                <button class="btn btn-sm btn-light border" onclick="copyText('contact-text-content', this)">📋 复制</button>
+                            </div>
+                        </div>
                         
                         <div id="action-area" class="mt-3">
-                            <!-- 按钮由 JS 动态生成 -->
+                            <!-- 按钮由 JS 生成 -->
                         </div>
                     </div>
                 </div>
@@ -47,7 +51,7 @@
         </div>
     </div>
 
-    <!-- [新增] 借阅前确认弹窗 (Modal) -->
+    <!-- [修改] 借阅确认弹窗 -->
     <div class="modal fade" id="borrowConfirmModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -57,19 +61,26 @@
                 </div>
                 <div class="modal-body">
                     <p>在借阅之前，请务必先联系书主确认时间和地点：</p>
+                    
                     <div class="alert alert-primary text-center">
-                        <h4 id="modal-owner-contact" class="mb-0 fw-bold"></h4>
+                        <!-- 复制按钮区域 -->
+                        <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+                            <h3 id="modal-owner-contact" class="mb-0 fw-bold text-break"></h3>
+                            <button class="btn btn-sm btn-outline-primary bg-white" onclick="copyText('modal-owner-contact', this)" title="复制">
+                                📋 复制
+                            </button>
+                        </div>
                         <small class="text-muted">书主: <span id="modal-owner-name"></span></small>
                     </div>
-                    <p class="text-muted small">
-                        1. 请记下联系方式。<br>
+
+                    <p class="text-muted small mt-3">
+                        1. 点击“复制”按钮获取联系方式。<br>
                         2. 线下联系书主并拿到书后，再点击下方按钮。<br>
                         3. 点击确认后，书籍状态将变为“已借出”。
                     </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">我再想想</button>
-                    <!-- 点击这个按钮才会真正发送请求 -->
                     <button type="button" class="btn btn-success" onclick="confirmBorrowAction()">已联系，确认借阅</button>
                 </div>
             </div>
@@ -80,14 +91,13 @@
     <script src="js/app.js"></script>
     <script>
         const bookId = getQueryParam('id');
-        let currentBookData = null; // 用于存储当前书籍数据供弹窗使用
+        let currentBookData = null;
 
         init();
 
         async function init() {
             if(!bookId) return alert("书籍ID丢失");
             
-            // 1. 获取数据
             const [resBook, resUser] = await Promise.all([
                 fetch(`/api/books/${bookId}`),
                 fetch(`/api/me`)
@@ -96,33 +106,34 @@
             if(!resBook.ok) return document.body.innerHTML = "<div class='container mt-5'><h1>书籍不存在</h1></div>";
 
             const book = await resBook.json();
-            currentBookData = book; // 保存数据到全局变量
+            currentBookData = book;
             
             const userData = await resUser.json();
             const currentUser = userData.user;
             const isLoggedIn = userData.loggedIn;
 
-            // 2. 渲染基础信息
+            // 渲染基础信息
             document.getElementById('book-content').style.display = 'flex';
             document.getElementById('b-title').innerText = book.title;
             document.getElementById('b-author').innerText = book.author || '未知作者';
             document.getElementById('b-desc').innerText = book.description;
             document.getElementById('b-image').src = book.image || 'https://via.placeholder.com/300x400?text=No+Cover';
 
-            // 3. 渲染状态
+            // 渲染状态
             const statusSpan = document.getElementById('b-status-text');
             const actionArea = document.getElementById('action-area');
             const contactDiv = document.getElementById('contact-info');
+            const contactTextContent = document.getElementById('contact-text-content');
 
             const statusMap = { 'available': '可借阅', 'borrowed': '已借出', 'returning': '归还中' };
             statusSpan.innerText = statusMap[book.status];
             statusSpan.className = book.status === 'available' ? 'text-success fw-bold' : 'text-warning fw-bold';
 
-            // 4. 按钮逻辑 (核心修改部分)
             if (!isLoggedIn) {
                 actionArea.innerHTML = `<a href="login.html" class="btn btn-primary">登录后借阅</a>`;
             } else {
                 const isOwner = book.owner._id === currentUser._id;
+                // 安全获取 borrower id
                 const isBorrower = book.borrower && book.borrower._id === currentUser._id;
 
                 if (isOwner) {
@@ -130,10 +141,18 @@
                     if (book.status === 'returning') {
                         actionArea.innerHTML = `<button onclick="doAction('confirm_return')" class="btn btn-success btn-lg">确认已收到书</button>`;
                         contactDiv.style.display = 'block';
-                        contactDiv.innerText = `借阅者 ${book.borrower.username} 已归还，请确认。TA的联系方式: ${book.borrower.contact}`;
+                        // 填充联系方式，供复制
+                        contactTextContent.innerText = `${book.borrower.contact}`; 
+                        // 在文字前加个说明
+                        contactTextContent.innerHTML = `<strong>借阅者联系方式:</strong> <span id="copy-target-1">${book.borrower.contact}</span>`;
+                        // 修改按钮onclick指向具体的span id
+                        contactDiv.querySelector('button').setAttribute('onclick', "copyText('copy-target-1', this)");
+
                     } else if (book.status === 'borrowed') {
                         contactDiv.style.display = 'block';
-                        contactDiv.innerText = `当前借阅者: ${book.borrower.username}，联系方式: ${book.borrower.contact}`;
+                        contactTextContent.innerHTML = `<strong>借阅者联系方式:</strong> <span id="copy-target-2">${book.borrower.contact}</span>`;
+                        contactDiv.querySelector('button').setAttribute('onclick', "copyText('copy-target-2', this)");
+                        
                         actionArea.innerHTML = `<button class="btn btn-secondary" disabled>等待归还</button>`;
                     } else {
                         actionArea.innerHTML = `
@@ -143,9 +162,9 @@
                     }
                 } else if (isBorrower) {
                     // --- 我是借书人 ---
-                    // 借阅中，始终显示联系方式 (防止遗忘)
                     contactDiv.style.display = 'block';
-                    contactDiv.innerText = `书主联系方式: ${book.owner.contact} (书主: ${book.owner.username})`;
+                    contactTextContent.innerHTML = `<strong>书主联系方式:</strong> <span id="copy-target-3">${book.owner.contact}</span>`;
+                    contactDiv.querySelector('button').setAttribute('onclick', "copyText('copy-target-3', this)");
 
                     if (book.status === 'borrowed') {
                         actionArea.innerHTML = `<button onclick="doAction('return_request')" class="btn btn-warning btn-lg">申请还书</button>`;
@@ -155,7 +174,6 @@
                 } else {
                     // --- 我是路人 ---
                     if (book.status === 'available') {
-                        // [修改点] 这里不再直接借阅，而是打开弹窗
                         actionArea.innerHTML = `<button onclick="openBorrowModal()" class="btn btn-primary btn-lg">我要借阅</button>`;
                     } else {
                         actionArea.innerHTML = `<button class="btn btn-secondary" disabled>已被他人借走</button>`;
@@ -163,13 +181,11 @@
                 }
             }
 
-            // 渲染留言
             const cList = document.getElementById('comment-list');
             book.comments.forEach(c => {
                 cList.innerHTML += `<li class="list-group-item"><strong>${c.user}:</strong> ${c.text}</li>`;
             });
             
-            // 绑定留言提交
             document.getElementById('comment-form').onsubmit = async (e) => {
                 e.preventDefault();
                 await fetch(`/api/books/${bookId}/comment`, {
@@ -179,23 +195,39 @@
             };
         }
 
-        // [新增] 打开借阅确认弹窗
         function openBorrowModal() {
-            // 填充弹窗里的数据
             document.getElementById('modal-owner-contact').innerText = currentBookData.owner.contact;
             document.getElementById('modal-owner-name').innerText = currentBookData.owner.username;
-            
-            // 使用 Bootstrap API 显示弹窗
             const modal = new bootstrap.Modal(document.getElementById('borrowConfirmModal'));
             modal.show();
         }
 
-        // [新增] 弹窗里的确认按钮点击后，才执行真正的借阅
         function confirmBorrowAction() {
             doAction('borrow');
         }
 
-        // 通用操作函数
+        // [新增] 复制功能函数
+        function copyText(elementId, btn) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                // 视觉反馈
+                const originalContent = btn.innerHTML;
+                btn.innerHTML = '✅ 已复制';
+                btn.classList.remove('btn-light', 'btn-outline-primary', 'bg-white');
+                btn.classList.add('btn-success', 'text-white');
+
+                // 2秒后恢复原状
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove('btn-success', 'text-white');
+                    btn.classList.add('btn-outline-primary', 'bg-white'); // 这里简单恢复为一种样式，实际不影响功能
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败', err);
+                alert('复制失败，请手动长按复制');
+            });
+        }
+
         async function doAction(actionType) {
             const res = await fetch(`/api/books/${bookId}/action`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: actionType})
@@ -205,7 +237,6 @@
             else alert(data.message || '操作失败');
         }
 
-        // 删除函数
         async function deleteBook(id) {
             if(!confirm("确定要下架并删除这本书吗？")) return;
             const res = await fetch(`/api/books/${id}`, { method: 'DELETE' });
