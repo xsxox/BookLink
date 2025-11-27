@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container" id="profile-content" style="display:none;">
+        <div class="row">
+            <!-- 个人信息卡片 -->
+            <div class="col-md-4 mb-4">
+                <div class="card text-center p-3">
+                    <div class="mb-3">
+                        <img id="u-avatar" src="" class="rounded-circle" style="width:100px;">
+                    </div>
+                    <h3 id="u-name"></h3>
+                    <p id="u-bio" class="text-muted"></p>
+                    <p class="mb-1"><strong>联系方式:</strong> <span id="u-contact"></span></p>
+                    <div class="alert alert-info mt-2 mb-0">可借配额: <span id="u-quota"></span> / 3</div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <!-- 借阅列表 -->
+                <h4 class="mb-3">📖 我正在读</h4>
+                <div class="list-group mb-5" id="borrow-list"></div>
+
+                <!-- 发布列表 -->
+                <h4 class="mb-3">📦 我发布的书籍</h4>
+                <div class="list-group" id="my-books-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        loadProfile();
+        
+        async function loadProfile() {
+            const res = await fetch('/api/me');
+            const data = await res.json();
+
+            if (!data.loggedIn) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('profile-content').style.display = 'block';
+            
+            // 填充用户信息
+            const u = data.user;
+            document.getElementById('u-name').innerText = u.username;
+            document.getElementById('u-bio').innerText = u.bio || '暂无简介';
+            document.getElementById('u-contact').innerText = u.contact;
+            document.getElementById('u-avatar').src = `https://ui-avatars.com/api/?name=${u.username}&background=random`;
+            document.getElementById('u-quota').innerText = 3 - u.borrowedBooks.length;
+
+            // 填充在读列表
+            const bList = document.getElementById('borrow-list');
+            if(u.borrowedBooks.length === 0) bList.innerHTML = '<div class="list-group-item text-muted">暂无借阅</div>';
+            else {
+                u.borrowedBooks.forEach(b => {
+                    bList.innerHTML += `
+                        <a href="book.html?id=${b._id}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${b.title}</h5>
+                                <small class="${b.status === 'returning' ? 'text-warning' : 'text-primary'}">
+                                    ${b.status === 'returning' ? '归还确认中...' : '阅读中'}
+                                </small>
+                            </div>
+                            <small class="text-muted">书主: ${b.owner.username} (${b.owner.contact})</small>
+                        </a>
+                    `;
+                });
+            }
+
+            // 填充我发布的书
+            const mList = document.getElementById('my-books-list');
+            if(data.myBooks.length === 0) mList.innerHTML = '<div class="list-group-item text-muted">暂无发布</div>';
+            else {
+                data.myBooks.forEach(b => {
+                    let statusHtml = '<span class="text-success">在架</span>';
+                    if(b.status === 'borrowed') statusHtml = `<span class="text-danger">被借走 (借阅人: ${b.borrower.username})</span>`;
+                    if(b.status === 'returning') statusHtml = `<span class="text-warning fw-bold">等待你确认归还</span>`;
+                    
+                    mList.innerHTML += `
+                        <a href="book.html?id=${b._id}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${b.title}</h5>
+                                <small>${statusHtml}</small>
+                            </div>
+                        </a>
+                    `;
+                });
+            }
+        }
+    </script>
+</body>
+</html>

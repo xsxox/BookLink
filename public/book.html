@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>书籍详情</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4">
+        <div class="row" id="book-content" style="display:none">
+            <div class="col-md-4">
+                <img id="b-image" class="img-fluid rounded shadow mb-3" src="">
+            </div>
+            <div class="col-md-8">
+                <h2 id="b-title"></h2>
+                <h5 class="text-muted" id="b-author"></h5>
+                <p class="mt-3 lead" id="b-desc"></p>
+                <hr>
+                
+                <!-- 状态与按钮区 -->
+                <div class="card bg-body-tertiary mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">当前状态: <span id="b-status-text"></span></h5>
+                        <div id="contact-info" class="alert alert-info mt-3" style="display:none"></div>
+                        <div id="action-area" class="mt-3">
+                            <!-- 按钮由 JS 生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 留言区 -->
+                <h4>留言板</h4>
+                <ul class="list-group mb-3" id="comment-list"></ul>
+                <form id="comment-form">
+                    <div class="input-group">
+                        <input type="text" name="text" class="form-control" placeholder="写下你的留言..." required>
+                        <button class="btn btn-outline-primary">发送</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        const bookId = getQueryParam('id');
+        init();
+
+        async function init() {
+            if(!bookId) return alert("书籍ID丢失");
+            
+            // 1. 并行获取书籍和当前用户信息
+            const [resBook, resUser] = await Promise.all([
+                fetch(`/api/books/${bookId}`),
+                fetch(`/api/me`)
+            ]);
+            
+            if(!resBook.ok) return document.body.innerHTML = "<div class='container mt-5'><h1>书籍不存在</h1></div>";
+
+            const book = await resBook.json();
+            const userData = await resUser.json();
+            const currentUser = userData.user;
+            const isLoggedIn = userData.loggedIn;
+
+            // 2. 渲染基础信息
+            document.getElementById('book-content').style.display = 'flex';
+            document.getElementById('b-title').innerText = book.title;
+            document.getElementById('b-author').innerText = book.author || '未知作者';
+            document.getElementById('b-desc').innerText = book.description;
+            document.getElementById('b-image').src = book.image || 'https://via.placeholder.com/300x400';
+
+            // 3. 渲染状态和按钮 (核心逻辑)
+            const statusSpan = document.getElementById('b-status-text');
+            const actionArea = document.getElementById('action-area');
+            const contactDiv = document.getElementById('contact-info');
+
+            // 设置状态文字
+            const statusMap = { 'available': '可借阅', 'borrowed': '已借出', 'returning': '归还中' };
+            statusSpan.innerText = statusMap[book.status];
+            if(book.status === 'available') statusSpan.className = 'text-success fw-bold';
+            else statusSpan.className = 'text-warning fw-bold';
+
+            // 按钮逻辑判断
+            if (!isLoggedIn) {
+                actionArea.innerHTML = `<a href="login.html" class="btn btn-primary">登录后借阅</a>`;
+            } else {
+                const isOwner = book.owner._id === currentUser._id;
+                const isBorrower = book.borrower && book.borrower._id === currentUser._id;
+
+                if (isOwner) {
+                    // 我是书主
+                    if (book.status === 'returning') {
+                        actionArea.innerHTML = `<button onclick="doAction('confirm_return')" class="btn btn-success btn-lg">确认已收到书</button>`;
+                        contactDiv.style.display = 'block';
+                        contactDiv.innerText = `借阅者 ${book.borrower.username} 已归还，请确认。TA的联系方式: ${book.borrower.contact}`;
+                    } else if (book.status === 'borrowed') {
+                        contactDiv.style.display = 'block';
+                        contactDiv.innerText = `当前借阅者: ${book.borrower.username}，联系方式: ${book.borrower.contact}`;
+                        actionArea.innerHTML = `<button class="btn btn-secondary" disabled>等待归还</button>`;
+                    } else {
+                        actionArea.innerHTML = `<button class="btn btn-secondary" disabled>这是你发布的书</button>`;
+                    }
+                } else if (isBorrower) {
+                    // 我是借书人
+                    if (book.status === 'borrowed') {
+                        actionArea.innerHTML = `<button onclick="doAction('return_request')" class="btn btn-warning btn-lg">申请还书</button>`;
+                        contactDiv.style.display = 'block';
+                        contactDiv.innerText = `请线下联系书主归还。书主: ${book.owner.username}，联系方式: ${book.owner.contact}`;
+                    } else if (book.status === 'returning') {
+                        actionArea.innerHTML = `<button class="btn btn-secondary" disabled>等待书主确认...</button>`;
+                    }
+                } else {
+                    // 我是路人
+                    if (book.status === 'available') {
+                        actionArea.innerHTML = `<button onclick="doAction('borrow')" class="btn btn-primary btn-lg">我要借阅</button>`;
+                    } else {
+                        actionArea.innerHTML = `<button class="btn btn-secondary" disabled>已被他人借走</button>`;
+                    }
+                }
+            }
+
+            // 4. 渲染留言
+            const cList = document.getElementById('comment-list');
+            book.comments.forEach(c => {
+                cList.innerHTML += `<li class="list-group-item"><strong>${c.user}:</strong> ${c.text}</li>`;
+            });
+
+            // 绑定留言提交
+            document.getElementById('comment-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const text = e.target.text.value;
+                await fetch(`/api/books/${bookId}/comment`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})
+                });
+                location.reload();
+            };
+        }
+
+        async function doAction(actionType) {
+            const res = await fetch(`/api/books/${bookId}/action`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: actionType})
+            });
+            const data = await res.json();
+            if(data.success) location.reload();
+            else alert(data.message || '操作失败');
+        }
+    </script>
+</body>
+</html>
