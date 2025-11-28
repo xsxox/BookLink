@@ -1,1 +1,190 @@
-﻿
+﻿/* =========================================
+   BookLink 主题：💎 科技灵动 (Tech Flow) - 最终完美版
+   ========================================= */
+
+:root {
+    /* --- 核心色板 --- */
+    --primary-color: #3b82f6;       /* 交互色 */
+    --primary-hover: #2563eb;       
+    
+    /* [保留你喜欢的背景] 加深版冷灰蓝，提供完美对比度 */
+    --bg-body: #dbe4ef;             
+    
+    --text-main: #1e293b;           /* 深墨色 */
+    --text-muted: #64748b;          /* 灰蓝 */
+    
+    --card-bg: #ffffff;             /* 卡片纯白 */
+    --radius-md: 10px;
+    --radius-lg: 12px;              
+    --radius-pill: 50px;
+}
+
+/* --- 1. 全局设置 --- */
+body {
+    background-color: var(--bg-body);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-main);
+    padding-bottom: 3rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- 2. 导航栏 --- */
+.navbar {
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 2rem;
+}
+
+.navbar-brand {
+    font-weight: 800;
+    color: var(--primary-color) !important;
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* --- 3. Hero Banner (方案 A：科技灵动 + 瘦身版) --- */
+.hero-banner {
+    /* [核心修改] 宝蓝 -> 青空蓝 渐变 */
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    color: white;
+    
+    /* 瘦身版尺寸 */
+    padding: 2.5rem 1.5rem;
+    border-radius: var(--radius-lg);
+    
+    /* [修改] 配合青色的光晕阴影，通透感拉满 */
+    box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.3), 0 4px 6px -2px rgba(6, 182, 212, 0.1);
+    
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border: none;
+}
+
+/* 背景纹理：淡淡的圆圈 */
+.hero-banner::before {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 20%);
+    background-size: 30px 30px;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* 标题 */
+.hero-title {
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    font-size: 1.75rem; 
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    position: relative; z-index: 2;
+}
+
+/* 副标题 */
+.hero-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    max-width: 600px;
+    margin-left: auto; margin-right: auto;
+    position: relative; z-index: 2;
+}
+
+/* 搜索框组 (紧凑) */
+.hero-search-group {
+    max-width: 500px; 
+    margin: 0 auto;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: var(--radius-pill);
+    background: white;
+    padding: 4px;
+    position: relative; z-index: 2;
+}
+
+.hero-search-group .form-control {
+    border: none;
+    padding-left: 1.2rem;
+    font-size: 0.95rem;
+    background: transparent;
+}
+.hero-search-group .form-control:focus { box-shadow: none; }
+
+.hero-search-group .btn {
+    border-radius: var(--radius-pill) !important;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    /* 按钮用深蓝色，对比清晰 */
+    background-color: #1e40af; 
+    border-color: #1e40af;
+}
+.hero-search-group .btn:hover {
+    background-color: #172554;
+}
+
+/* --- 4. 书籍卡片 --- */
+.card {
+    background-color: var(--card-bg);
+    border: none;
+    border-radius: 12px;
+    /* 增加 1px 的半透明白边，增强在深色背景上的轮廓感 */
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-img-top {
+    transition: transform 0.5s ease;
+}
+.card:hover .card-img-top {
+    transform: scale(1.02);
+}
+
+/* --- 5. 按钮与细节 --- */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 愿望单爱心 */
+button[title="收藏"] { transition: transform 0.2s; }
+button[title="收藏"]:active { transform: scale(0.9); }
+button[title="收藏"].text-danger { color: #ef4444 !important; filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.2)); }
+
+/* 状态徽章 */
+.badge { border-radius: 4px; font-weight: 500; }
+
+/* 页脚 */
+.footer {
+    border-top: 1px solid #cbd5e1; /* 分割线稍微深一点，适配深背景 */
+    margin-top: 4rem;
+    padding-top: 2rem;
+    color: var(--text-muted);
+}
