@@ -1,36 +1,61 @@
 ﻿/* =========================================
-   BookLink 主题：💎 科技灵动 (Tech Flow) - 最终完美版
+   BookLink 主题：💎 科技灵动 (Tech Flow) - 夜间模式修复版
    ========================================= */
 
 :root {
-    /* --- 核心色板 --- */
-    --primary-color: #3b82f6;       /* 交互色 */
-    --primary-hover: #2563eb;       
-    --bg-body: #dbe4ef;             /* 加深版冷灰蓝背景 */
-    --text-main: #1e293b;           /* 深墨色 */
-    --text-muted: #64748b;          /* 灰蓝 */
+    /* --- 1. 浅色模式变量 (默认) --- */
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
     
-    --card-bg: #ffffff;             /* 卡片纯白 */
+    --bg-body: #dbe4ef;             /* 浅色背景：蓝灰 */
+    --bg-navbar: #ffffff;           /* 导航栏：白 */
+    --bg-card: #ffffff;             /* 卡片：白 */
+    --bg-input: #ffffff;            /* 输入框：白 */
+    
+    --text-main: #1e293b;           /* 深色字 */
+    --text-muted: #64748b;
+    
+    --border-color: #e2e8f0;        /* 浅色边框 */
+    
     --radius-md: 10px;
-    --radius-lg: 12px;              
+    --radius-lg: 12px;
     --radius-pill: 50px;
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* --- 1. 全局设置 --- */
+/* --- 2. 深色模式变量 (自动适配) --- */
+[data-bs-theme="dark"] {
+    --bg-body: #0f172a;             /* 深色背景：深邃蓝黑 */
+    --bg-navbar: #1e293b;           /* 导航栏：深蓝灰 */
+    --bg-card: #1e293b;             /* 卡片：深蓝灰 */
+    --bg-input: #334155;            /* 输入框：更浅一点的灰 */
+    
+    --text-main: #f1f5f9;           /* 浅色字 */
+    --text-muted: #94a3b8;
+    
+    --border-color: #334155;        /* 深色边框 */
+    
+    --primary-color: #60a5fa;       /* 夜间稍微亮一点的蓝，防刺眼 */
+    --primary-hover: #3b82f6;
+}
+
+/* --- 全局设置 --- */
 body {
     background-color: var(--bg-body);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     padding-bottom: 3rem;
-    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease; /* 让切换过程有丝滑动画 */
 }
 
-/* --- 2. 导航栏 --- */
+/* --- 导航栏 --- */
 .navbar {
-    background-color: #ffffff !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    border-bottom: 1px solid #e2e8f0;
+    background-color: var(--bg-navbar) !important; /* [修复] 使用变量 */
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
+    transition: background-color 0.3s ease;
 }
 
 .navbar-brand {
@@ -38,20 +63,21 @@ body {
     color: var(--primary-color) !important;
     font-size: 1.5rem;
     letter-spacing: -0.5px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
 }
 
-/* 导航链接放大 */
+/* 导航链接颜色适配 */
 .navbar-nav .nav-link {
     font-size: 1.1rem;
     font-weight: 600;
     margin: 0 5px;
     color: var(--text-main);
 }
+.navbar-nav .nav-link:hover {
+    color: var(--primary-color);
+}
 
-/* --- 3. Hero Banner (方案 A) --- */
+/* --- Hero Banner (保持不变，深色渐变在夜间也好看) --- */
 .hero-banner {
     background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
     color: white;
@@ -66,68 +92,49 @@ body {
 }
 
 .hero-banner::before {
-    content: "";
-    position: absolute;
-    top: -50%; left: -50%; width: 200%; height: 200%;
+    content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
     background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 20%);
-    background-size: 30px 30px;
-    opacity: 0.3;
-    pointer-events: none;
+    background-size: 30px 30px; opacity: 0.3; pointer-events: none;
 }
 
 .hero-title {
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
-    font-size: 1.75rem; 
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    position: relative; z-index: 2;
+    font-weight: 700; color: #ffffff; margin-bottom: 0.5rem; font-size: 1.75rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; z-index: 2;
 }
-
 .hero-subtitle {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.95rem;
-    margin-bottom: 1.5rem;
-    max-width: 600px;
-    margin-left: auto; margin-right: auto;
+    color: rgba(255, 255, 255, 0.9); font-size: 0.95rem; margin-bottom: 1.5rem;
     position: relative; z-index: 2;
 }
 
+/* 搜索框组 */
 .hero-search-group {
-    max-width: 500px; 
-    margin: 0 auto;
+    max-width: 500px; margin: 0 auto;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     border: none;
     border-radius: var(--radius-pill);
-    background: white;
-    padding: 4px;
-    position: relative; z-index: 2;
+    background: var(--bg-card); /* [修复] 适配夜间背景 */
+    padding: 4px; position: relative; z-index: 2;
 }
 
 .hero-search-group .form-control {
-    border: none;
-    padding-left: 1.2rem;
-    font-size: 0.95rem;
+    border: none; padding-left: 1.2rem; font-size: 0.95rem;
     background: transparent;
+    color: var(--text-main); /* [修复] 输入文字颜色 */
 }
 .hero-search-group .form-control:focus { box-shadow: none; }
 
 .hero-search-group .btn {
-    border-radius: var(--radius-pill) !important;
-    padding: 0.5rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    background-color: #1e40af; 
-    border-color: #1e40af;
+    border-radius: var(--radius-pill) !important; padding: 0.5rem 1.5rem;
+    font-size: 0.95rem; font-weight: 600;
+    background-color: #1e40af; border-color: #1e40af; color: white;
 }
 
-/* --- 4. 书籍卡片 --- */
+/* --- 书籍卡片 --- */
 .card {
-    background-color: var(--card-bg);
-    border: none;
+    background-color: var(--bg-card); /* [修复] 使用变量 */
+    border: 1px solid var(--border-color); /* [修复] 使用变量 */
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.6);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
     overflow: hidden;
 }
@@ -135,48 +142,62 @@ body {
 .card:hover {
     transform: translateY(-6px);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.card-img-top {
-    transition: transform 0.5s ease;
-}
-.card:hover .card-img-top {
-    transform: scale(1.02);
-}
-
-/* --- 5. 按钮美化 --- */
-.btn-primary {
-    background-color: var(--primary-color);
     border-color: var(--primary-color);
 }
+
+.card-body {
+    color: var(--text-main); /* [修复] 卡片文字颜色 */
+}
+
+.card-img-top { transition: transform 0.5s ease; }
+.card:hover .card-img-top { transform: scale(1.02); }
+
+/* --- 按钮与表单 --- */
+.btn-primary {
+    background-color: var(--primary-color); border-color: var(--primary-color);
+}
 .btn-primary:hover {
-    background-color: var(--primary-hover);
-    border-color: var(--primary-hover);
+    background-color: var(--primary-hover); border-color: var(--primary-hover);
 }
 
 .btn-outline-primary {
-    color: var(--primary-color);
-    border-color: var(--primary-color);
+    color: var(--primary-color); border-color: var(--primary-color);
 }
 .btn-outline-primary:hover {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--primary-color); color: white;
 }
 
-/* 导航栏按钮组特殊优化 */
+/* 表单输入框适配 */
+.form-control, .form-select {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 8px;
+}
+.form-control:focus {
+    background-color: var(--bg-input);
+    color: var(--text-main);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+/* 上传文件按钮颜色修复 */
+.form-control::file-selector-button {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    border-right: 1px solid var(--border-color);
+}
+
+/* --- 细节修饰 --- */
+/* 导航栏按钮组优化 */
 #nav-auth-area .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s ease;
 }
 #nav-auth-area .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
 }
-#nav-auth-area button[onclick="logout()"]:hover {
-    color: #ef4444 !important;
-}
+#nav-auth-area button[onclick="logout()"]:hover { color: #ef4444 !important; }
 
 /* 愿望单爱心 */
 button[title="收藏"] { transition: transform 0.2s; }
@@ -186,8 +207,7 @@ button[title="收藏"].text-danger { color: #ef4444 !important; filter: drop-sha
 .badge { border-radius: 4px; font-weight: 500; }
 
 .footer {
-    border-top: 1px solid #cbd5e1;
-    margin-top: 4rem;
-    padding-top: 2rem;
+    border-top: 1px solid var(--border-color); /* [修复] */
+    margin-top: 4rem; padding-top: 2rem;
     color: var(--text-muted);
 }
