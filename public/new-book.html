@@ -2,39 +2,60 @@
 <html lang="zh-CN" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>发布书籍</title>
-    <!-- 国内CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布书籍 - BookLink</title>
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
     <div id="navbar-placeholder"></div>
-    <div class="container">
-        <h2>发布新书</h2>
-        <div class="row">
-            <div class="col-md-6">
-                <form id="upload-form">
-                    <div class="mb-3">
-                        <label>书名</label>
-                        <input type="text" name="title" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>作者</label>
-                        <input type="text" name="author" class="form-control">
-                    </div>
+
+    <div class="container pb-5"> <!-- 底部加点 padding 防止贴底 -->
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                
+                <!-- [修改] p-4 p-md-5: 保持大内边距 -->
+                <div class="card shadow-lg border-0 p-4 p-md-5" style="border-radius: 24px;">
                     
-                    <div class="mb-3">
-                        <label>封面图片 (支持 jpg/png)</label>
-                        <input type="file" name="coverImage" class="form-control" accept="image/*">
-                        <div class="form-text">如果不上传，将使用默认封面。</div>
+                    <div class="text-center mb-5"> <!-- 标题距离下方加大到 mb-5 -->
+                        <h2 class="fw-bold" style="color: var(--primary-color);">✨ 发布新书</h2>
+                        <p class="text-muted small mt-2">分享你的藏书，寻找新的读者</p>
                     </div>
 
-                    <div class="mb-3">
-                        <label>描述/推荐语</label>
-                        <textarea name="description" class="form-control" rows="4"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">立即发布</button>
-                </form>
+                    <form id="upload-form">
+                        <!-- [修改] mb-3 -> mb-4: 拉大每一行的间距 -->
+                        <div class="mb-4">
+                            <!-- [修改] mb-2: 让标签和输入框分开一点 -->
+                            <label class="form-label fw-bold mb-2">书名</label>
+                            <input type="text" name="title" class="form-control form-control-lg" placeholder="请输入书名" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold mb-2">作者</label>
+                            <input type="text" name="author" class="form-control form-control-lg" placeholder="请输入作者">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <br>
+                            <label class="form-label fw-bold mb-2">封面图片</label>
+                            <input type="file" name="coverImage" class="form-control" accept="image/*">
+                            <br>
+                        </div>
+
+                        <div class="mb-5"> <!-- 描述框通常比较大，下面留更多空间 -->
+                            <label class="form-label fw-bold mb-2">描述 / 推荐语</label>
+                            <textarea name="description" class="form-control" rows="5" placeholder="这本书讲了什么？为什么推荐它？..."></textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <!-- 按钮加大 padding -->
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm py-3" style="font-size: 1.15rem;">
+                                🚀 立即发布
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
@@ -44,6 +65,11 @@
     <script>
         document.getElementById('upload-form').onsubmit = async (e) => {
             e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '发布中...';
+            btn.disabled = true;
+
             const formData = new FormData(e.target);
 
             try {
@@ -57,10 +83,14 @@
                     window.location.href = 'index.html';
                 } else {
                     alert(data.error || '发布失败，请检查登录状态');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 }
             } catch (err) {
                 console.error(err);
                 alert("网络错误，上传失败");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
         initNavbar();
