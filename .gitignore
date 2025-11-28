@@ -1,5 +1,7 @@
 node_modules/
 
+public/uploads
+
 .git/
 
 # 操作系统生成的临时文件
