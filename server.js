@@ -29,7 +29,6 @@ const User = mongoose.model('User', new mongoose.Schema({
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }]
 }));
 
-// [修改] 移除了 category 字段
 const Book = mongoose.model('Book', new mongoose.Schema({
     title: { type: String, required: true },
     author: String,
@@ -113,7 +112,6 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/logout', (req, res) => { req.session.destroy(); res.json({ success: true }); });
 
-// [修改] 移除了 category 筛选逻辑
 app.get('/api/books', async (req, res) => {
     const { search } = req.query;
     const query = search ? { title: { $regex: search, $options: 'i' } } : {};
@@ -130,7 +128,6 @@ app.get('/api/books/:id', async (req, res) => {
     } catch (e) { res.status(404).json(null); }
 });
 
-// [修改] 移除了 category 保存逻辑
 app.post('/api/books', upload.single('coverImage'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: '未登录' });
     let imageUrl = '';

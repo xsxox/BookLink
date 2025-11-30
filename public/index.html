@@ -4,11 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BookLink - 首页</title>
-    
-    <!-- ✅ 国内 BootCDN 加速 Bootstrap -->
     <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- 自定义样式 -->
     <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
@@ -16,7 +12,7 @@
 
     <div class="container">
         
-        <!-- ✅ [新增] Hero Banner 首屏横幅 (替代原来的普通搜索行) -->
+        <!-- 渐变横幅 Hero Banner -->
         <div class="hero-banner">
             <h1 class="hero-title">让闲置书籍流动起来</h1>
             <p class="hero-subtitle">BookLink 是一个校园内部的书籍共享平台。在这里，你可以发现同学们的藏书，分享你的知识，建立新的连接。</p>
@@ -39,7 +35,6 @@
 
     </div>
 
-    <!-- ✅ 国内 BootCDN 加速 JS -->
     <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="js/app.js"></script>
     
@@ -69,7 +64,6 @@
         async function loadBooks() {
             const query = document.getElementById('search-input').value;
             
-            // 构建请求 URL (已移除分类参数)
             let url = `/api/books?search=${query || ''}`;
 
             const res = await fetch(url);
@@ -97,7 +91,7 @@
                 const currentIcon = isLiked ? heartFilledSvg : heartOutlineSvg;
                 const btnColorClass = isLiked ? 'text-danger' : 'text-secondary';
 
-                // ✅ 图片修复逻辑：如果没图，显示灰色占位 SVG
+                // 如果没图，显示灰色占位 SVG
                 const fallbackImage = `data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22200%22%20height%3D%22250%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23f3f4f6%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22sans-serif%22%20font-size%3D%2224%22%20fill%3D%22%23d1d5db%22%20text-anchor%3D%22middle%22%3E📚%3C%2Ftext%3E%3C%2Fsvg%3E`;
                 const displayImage = book.image ? book.image : fallbackImage;
 

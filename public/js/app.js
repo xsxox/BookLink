@@ -40,7 +40,7 @@ async function initNavbar() {
         const data = await res.json();
         const authArea = document.getElementById('nav-auth-area');
         
-        // [修改] 模式切换按钮：变成稍微大一点的圆形
+        // 模式切换按钮
         let html = `
             <button class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center" 
                     onclick="toggleTheme()" 
@@ -51,7 +51,7 @@ async function initNavbar() {
         `;
         
         if (data.loggedIn) {
-            // [修改] 登录后：按钮变大 (px-4 py-2)，加图标，圆角胶囊
+            // 登录后
             html += `
                 <a href="new-book.html" class="btn btn-primary shadow-sm fw-bold px-4 py-2" style="border-radius: 50px;">
                     ✨ 发布书籍
@@ -66,7 +66,6 @@ async function initNavbar() {
                 </button>
             `;
         } else {
-            // [修改] 未登录：按钮变大
             html += `<a href="login.html" class="btn btn-primary fw-bold px-4 py-2 shadow-sm" style="border-radius: 50px;">登录 / 注册</a>`;
         }
         authArea.innerHTML = html;

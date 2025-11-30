@@ -52,7 +52,7 @@
         </div>
     </div>
 
-    <!-- [修改] 借阅确认弹窗 -->
+    <!-- 借阅确认弹窗 -->
     <div class="modal fade" id="borrowConfirmModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -68,7 +68,7 @@
                         <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
                             <h3 id="modal-owner-contact" class="mb-0 fw-bold text-break"></h3>
                             <button class="btn btn-sm btn-outline-primary bg-white" onclick="copyText('modal-owner-contact', this)" title="复制">
-                                📋 复制
+                                copy
                             </button>
                         </div>
                         <small class="text-muted">书主: <span id="modal-owner-name"></span></small>
@@ -207,11 +207,10 @@
             doAction('borrow');
         }
 
-        // [新增] 复制功能函数
+        // 复制功能函数
         function copyText(elementId, btn) {
             const text = document.getElementById(elementId).innerText;
             navigator.clipboard.writeText(text).then(() => {
-                // 视觉反馈
                 const originalContent = btn.innerHTML;
                 btn.innerHTML = '✅ 已复制';
                 btn.classList.remove('btn-light', 'btn-outline-primary', 'bg-white');

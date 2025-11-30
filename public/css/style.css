@@ -1,5 +1,5 @@
 ﻿/* =========================================
-   BookLink 主题：💎 科技灵动 (Tech Flow) - 夜间模式修复版
+   BookLink 主题：💎 科技灵动 (Tech Flow)
    ========================================= */
 
 :root {
@@ -36,7 +36,7 @@
     
     --border-color: #334155;        /* 深色边框 */
     
-    --primary-color: #60a5fa;       /* 夜间稍微亮一点的蓝，防刺眼 */
+    --primary-color: #60a5fa;       /* 夜间稍微亮一点的蓝*/
     --primary-hover: #3b82f6;
 }
 
@@ -49,9 +49,9 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease; /* 让切换过程有丝滑动画 */
 }
 
-/* --- 导航栏 --- */
+/* --- NavBar --- */
 .navbar {
-    background-color: var(--bg-navbar) !important; /* [修复] 使用变量 */
+    background-color: var(--bg-navbar) !important;
     border-bottom: 1px solid var(--border-color);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
@@ -77,7 +77,7 @@ body {
     color: var(--primary-color);
 }
 
-/* --- Hero Banner (保持不变，深色渐变在夜间也好看) --- */
+/* --- Hero Banner  --- */
 .hero-banner {
     background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
     color: white;
@@ -112,7 +112,7 @@ body {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     border: none;
     border-radius: var(--radius-pill);
-    background: var(--bg-card); /* [修复] 适配夜间背景 */
+    background: var(--bg-card);
     padding: 4px; position: relative; z-index: 2;
 }
 
@@ -207,7 +207,7 @@ button[title="收藏"].text-danger { color: #ef4444 !important; filter: drop-sha
 .badge { border-radius: 4px; font-weight: 500; }
 
 .footer {
-    border-top: 1px solid var(--border-color); /* [修复] */
+    border-top: 1px solid var(--border-color);
     margin-top: 4rem; padding-top: 2rem;
     color: var(--text-muted);
 }
