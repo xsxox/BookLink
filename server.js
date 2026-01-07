@@ -15,8 +15,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-mongoose.connect('mongodb+srv://1946261830_db_user:zxcvbnmasdfghjkl@cluster0.h82wjgm.mongodb.net/?appName=Cluster0')
-    .then(() => console.log('MongoDB 连接成功'))
+mongoose.connect('mongodb://127.0.0.1:27017/booklink')
+    .then(() => console.log('MongoDB 连接成功 (本地)'))
     .catch(err => console.error('MongoDB 连接失败', err));
 
 const User = mongoose.model('User', new mongoose.Schema({
